@@ -35,6 +35,23 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # Database
+  sqflite: ^2.3.0 # For local SQLite database management
+  path_provider: ^2.1.1 # To find the correct path for storing the database
+
+  # State Management
+  flutter_riverpod: ^2.4.5 # A robust state management solution
+
+  # PDF generation
+  pdf: ^3.10.6 # For generating PDF invoices (for Fase 2)
+  printing: ^5.11.1 # To handle printing and sharing of PDFs (for Fase 2)
+
+  # Universal Share (for Fase 2)
+  share_plus: ^7.2.1 # To trigger the native share dialog
+
+  # For date formatting and other utilities
+  intl: ^0.18.1 # For internationalization, useful for date/currency formatting
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
