@@ -44,10 +44,10 @@ dependencies:
   flutter_riverpod: ^2.4.5 # A robust state management solution
 
   # PDF generation
-  pdf: ^3.10.6 # For generating PDF invoices (for Fase 2)
-  printing: ^5.11.1 # To handle printing and sharing of PDFs (for Fase 2)
+  pdf: ^3.10.6  # For generating PDF documents
+  printing: ^5.11.1  # For printing and sharing PDF documents
 
-  # Universal Share (for Fase 2)
+  # Universal Share 
   share_plus: ^7.2.1 # To trigger the native share dialog
 
   # For date formatting and other utilities
