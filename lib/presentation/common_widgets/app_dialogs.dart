@@ -40,3 +40,30 @@ Future<bool?> showConfirmationDialog(
       },
     );
   }
+
+/// Shows a simple informational message dialog (replaces alert()).
+/// This function is typically used to display general messages or errors to the user.
+Future<void> showAppMessageDialog(BuildContext context, {
+  required String title,
+  required String message,
+  String buttonText = 'OK',
+}) async {
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+        title: Text(title),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            child: Text(buttonText),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}

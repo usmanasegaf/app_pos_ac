@@ -4,10 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_pos_ac/app/app.dart'; // Revised package name
 import 'package:app_pos_ac/presentation/providers/database_providers.dart'; // Import the database initialization provider (Revised package name)
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   // Ensure that Flutter binding is initialized.
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
   runApp(
     // ProviderScope is necessary for Riverpod to work.

@@ -27,7 +27,7 @@ class PosAcApp extends ConsumerWidget {
           backgroundColor: Colors.blueAccent,
           foregroundColor: Colors.white,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           elevation: 2,
           shape: RoundedRectangleBorder(

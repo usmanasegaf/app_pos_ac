@@ -1,5 +1,5 @@
 name: app_pos_ac
-description: "A new Flutter project."
+description: "A new Flutter project for AC service POS."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -38,6 +38,7 @@ dependencies:
   # Database
   sqflite: ^2.3.0 # For local SQLite database management
   path_provider: ^2.1.1 # To find the correct path for storing the database
+  sqflite_common_ffi: ^2.3.6 # For FFI support in SQLite, especially on desktop platforms
 
   # State Management
   flutter_riverpod: ^2.4.5 # A robust state management solution
