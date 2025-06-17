@@ -20,6 +20,14 @@ Future<bool?> showConfirmationDialog(
           content: Text(content),
           actions: <Widget>[
             TextButton(
+              // Mengatur warna teks tombol 'No' menjadi hitam
+              // Mengatur warna latar belakang tombol 'No' menjadi abu-abu terang
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black, // Warna teks
+                backgroundColor: Colors.grey[200], // Warna latar belakang tombol "No"
+                side: const BorderSide(color: Colors.grey, width: 1.0), // Border tipis abu-abu
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)), // Memastikan border juga punya radius
+              ),
               child: Text(cancelButtonText),
               onPressed: () {
                 Navigator.of(context).pop(false); // Return false
@@ -27,13 +35,18 @@ Future<bool?> showConfirmationDialog(
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: confirmButtonColor ?? Theme.of(context).primaryColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                // Mengubah warna latar belakang tombol 'Yes' menjadi warna yang diinginkan
+                // Defaultnya ke biru jika confirmButtonColor tidak disediakan
+                backgroundColor: confirmButtonColor ?? Colors.blueAccent, // Warna latar belakang tombol "Yes"
+                foregroundColor: Colors.white, // Warna teks agar kontras
+                side: const BorderSide(color: Colors.blueAccent, width: 1.0), // Border mengikuti warna background
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)), // Memastikan border juga punya radius
               ),
               onPressed: () {
                 Navigator.of(context).pop(true); // Return true
               },
-              child: Text(confirmButtonText),
+              // Mengatur warna teks tombol 'Yes' menjadi putih (agar kontras dengan latar belakang)
+              child: Text(confirmButtonText, style: const TextStyle(color: Colors.white)),
             ),
           ],
         );

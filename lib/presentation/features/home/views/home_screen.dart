@@ -1,9 +1,9 @@
 // lib/presentation/features/home/views/home_screen.dart
 
-import 'package:flutter/material.dart';
-import 'package:app_pos_ac/presentation/features/service_items/views/service_item_list_view.dart'; // Revised package name
-// import 'package:app_pos_ac/presentation/features/transactions/views/transaction_history_view.dart'; // Will be created later (Revised package name)
-// import 'package:app_pos_ac/presentation/features/transactions/views/transaction_input_view.dart'; // Will be created later (Revised package name)
+import 'package:flutter/material.dart'; // Import ini diperbaiki
+import 'package:app_pos_ac/presentation/features/service_items/views/service_item_list_view.dart';
+import 'package:app_pos_ac/presentation/features/transactions/views/transaction_history_view.dart'; // Diaktifkan kembali
+import 'package:app_pos_ac/presentation/features/transactions/views/transaction_input_view.dart'; // Diaktifkan kembali
 
 /// The main home screen of the application.
 class HomeScreen extends StatelessWidget {
@@ -33,38 +33,38 @@ class HomeScreen extends StatelessWidget {
                 );
               },
             ),
-            // _buildFeatureCard(
-            //   context,
-            //   icon: Icons.receipt_long,
-            //   title: 'New Transaction',
-            //   onTap: () {
-            //     // Navigate to Transaction Input View
-            //     Navigator.push(
-            //       context,
-            //       MaterialPageRoute(builder: (context) => const TransactionInputView()),
-            //     );
-            //   },
-            // ),
-            // _buildFeatureCard(
-            //   context,
-            //   icon: Icons.history,
-            //   title: 'Transaction History',
-            //   onTap: () {
-            //     // Navigate to Transaction History View
-            //     Navigator.push(
-            //       context,
-            //       MaterialPageRoute(builder: (context) => const TransactionHistoryView()),
-            //     );
-            //   },
-            // ),
-            // Add more feature cards as needed
+            _buildFeatureCard(
+              context,
+              icon: Icons.receipt_long,
+              title: 'New Transaction',
+              onTap: () {
+                // Navigate to Transaction Input View
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TransactionInputView()),
+                );
+              },
+            ),
+            _buildFeatureCard(
+              context,
+              icon: Icons.history,
+              title: 'Transaction History',
+              onTap: () {
+                // Navigate to Transaction History View
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TransactionHistoryView()),
+                );
+              },
+            ),
+            // Tambahkan lebih banyak kartu fitur sesuai kebutuhan
           ],
         ),
       ),
     );
   }
 
-  /// Helper method to build a customizable feature card.
+  /// Helper method untuk membangun kartu fitur yang dapat disesuaikan.
   Widget _buildFeatureCard(BuildContext context, {
     required IconData icon,
     required String title,
