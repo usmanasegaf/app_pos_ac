@@ -45,9 +45,9 @@ class PdfInvoiceService {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Nama Perusahaan: Service AC Ku', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Alamat: Jl. Contoh No. 123, Kota ABC'),
-                    pw.Text('Telepon: 0812-3456-7890'),
+                    pw.Text('Nama Perusahaan: AC Teknik Semangan Pagi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Alamat: Paseban Barat B7 No.78 Kopo Kencana, Kota Bandung'),
+                    pw.Text('Telepon: 0813-2011-1868'),
                     pw.Text('Email: info@serviceacku.com'),
                   ],
                 ),
@@ -106,13 +106,6 @@ class PdfInvoiceService {
                 children: [
                   pw.Text('Terima kasih atas kepercayaan Anda!', style: const pw.TextStyle(fontSize: 12)),
                   pw.SizedBox(height: 10),
-                  // Placeholder for signature
-                  pw.Container(
-                    height: 50,
-                    width: 150,
-                    decoration: pw.BoxDecoration(border: pw.Border.all()),
-                    child: pw.Center(child: pw.Text('Tanda Tangan Pelanggan')),
-                  ),
                 ],
               ),
             ),
