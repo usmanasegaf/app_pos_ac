@@ -10,8 +10,9 @@ import 'package:app_pos_ac/data/models/transaction_item.dart'; // Mengimpor mode
 /// A service class responsible for generating PDF invoices from transaction data.
 class PdfInvoiceService {
   /// Generates a PDF invoice for a given transaction.
+  /// Requires logoBytes as a Uint8List for displaying the company logo.
   /// Returns the PDF document as a Uint8List.
-  Future<Uint8List> generateInvoice(TransactionAC transaction) async {
+  Future<Uint8List> generateInvoice(TransactionAC transaction, Uint8List logoBytes) async { // Pastikan parameter logoBytes ada
     final pdf = pw.Document(); // Membuat dokumen PDF baru
 
     // Formatter untuk mata uang Rupiah
@@ -22,25 +23,40 @@ class PdfInvoiceService {
     );
 
     // Formatter untuk tanggal dan waktu
-    final dateFormatter = DateFormat('dd MMMM yyyy, HH:mm');
+    final dateFormatter = DateFormat('dd MMMM HH:mm');
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         build: (pw.Context context) {
           return [
-            // Header Invoice
-            pw.Center(
-              child: pw.Text(
-                'INVOICE LAYANAN AC',
-                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
-              ),
-            ),
-            pw.SizedBox(height: 20),
-
-            // Detail Perusahaan (Opsional, bisa ditambahkan nanti)
+            // Header: Logo di kiri atas, Judul Invoice di kanannya
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.center, // Menyusun vertikal logo dan teks
+              children: [
+                // Logo di kiri - UKURAN TELAH DITINGKATKAN DI SINI
+                pw.Image(pw.MemoryImage(logoBytes), width: 140, height: 140), // <--- UBAH DI SINI
+                pw.SizedBox(width: 20), // Jarak antara logo dan judul
+// checkpoint
+                // Judul Invoice
+                pw.Expanded(
+                  child: pw.Align(
+                    alignment: pw.Alignment.centerRight, // Judul bisa diatur di tengah atau kanan
+                    child: pw.Text(
+                      'INVOICE LAYANAN AC',
+                      style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 20), // Jarak antara header dan konten
+
+            // Detail Perusahaan dan Tanggal/Invoice Number
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -99,13 +115,12 @@ class PdfInvoiceService {
             ),
             pw.SizedBox(height: 30),
 
-            // Catatan Kaki/Tanda Tangan
+            // Catatan Kaki (tanpa placeholder tanda tangan)
             pw.Align(
               alignment: pw.Alignment.bottomCenter,
               child: pw.Column(
                 children: [
                   pw.Text('Terima kasih atas kepercayaan Anda!', style: const pw.TextStyle(fontSize: 12)),
-                  pw.SizedBox(height: 10),
                 ],
               ),
             ),

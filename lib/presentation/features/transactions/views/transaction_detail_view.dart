@@ -1,12 +1,16 @@
+// lib/presentation/features/transactions/views/transaction_detail_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:app_pos_ac/data/models/transaction.dart'; // TransactionAC
 import 'package:app_pos_ac/data/models/transaction_item.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
-import 'package:app_pos_ac/services/pdf_invoice_service.dart';
-import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
+import 'package:app_pos_ac/services/pdf_invoice_service.dart'; // Import service PDF
+import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart'; // Import dialogs
+import 'package:pdf/pdf.dart'; // Untuk PdfPageFormat di Printing.layoutPdf
+import 'package:pdf/widgets.dart' as pw; // Untuk pw.Widget di _buildItemsTable
+import 'package:flutter/services.dart' show rootBundle; // Import ini untuk memuat aset
+import 'dart:typed_data'; // Untuk ByteData dan Uint8List
 
 /// Displays the detailed information of a single transaction.
 class TransactionDetailView extends StatelessWidget {
@@ -17,6 +21,7 @@ class TransactionDetailView extends StatelessWidget {
   /// Generates the PDF invoice and then provides options to view or share it.
   Future<void> _generateAndSharePdf(BuildContext context) async {
     try {
+      // Tampilkan indikator loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -32,10 +37,19 @@ class TransactionDetailView extends StatelessWidget {
         ),
       );
 
-      final pdfBytes = await PdfInvoiceService().generateInvoice(transaction);
+      // Muat logo dari aset
+      // PASTIKAN FILE LOGO ANDA ADA DI 'assets/images/logo_ac_teknik.jpeg'
+      // DAN SUDAH DIDAFTARKAN DI pubspec.yaml
+      final ByteData bytes = await rootBundle.load('assets/images/logo_ac_teknik.jpeg'); // <--- Gunakan nama file .jpeg di sini
+      final Uint8List logoBytes = bytes.buffer.asUint8List();
 
+      // PENTING: Teruskan logoBytes sebagai argumen kedua
+      final pdfBytes = await PdfInvoiceService().generateInvoice(transaction, logoBytes); // <--- Sekarang melewatkan dua argumen
+
+      // Tutup dialog loading
       Navigator.pop(context);
 
+      // Dialog untuk pilihan View atau Share
       await showDialog<bool>(
         context: context,
         builder: (BuildContext dialogContext) {
@@ -46,13 +60,13 @@ class TransactionDetailView extends StatelessWidget {
             actions: <Widget>[
               TextButton(
                 style: TextButton.styleFrom(foregroundColor: Colors.black),
-                onPressed: () => Navigator.pop(dialogContext, false),
+                onPressed: () => Navigator.pop(dialogContext, false), // Kembali ke view detail
                 child: const Text('Back'),
               ),
               TextButton(
                 style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
                 onPressed: () {
-                  Navigator.pop(dialogContext);
+                  Navigator.pop(dialogContext); // Tutup dialog
                   Printing.sharePdf(bytes: pdfBytes, filename: 'invoice_${transaction.id}.pdf');
                 },
                 child: const Text('Share PDF'),
@@ -64,7 +78,7 @@ class TransactionDetailView extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
                 ),
                 onPressed: () {
-                  Navigator.pop(dialogContext);
+                  Navigator.pop(dialogContext); // Tutup dialog
                   Printing.layoutPdf(
                     onLayout: (PdfPageFormat format) async => pdfBytes,
                     name: 'invoice_${transaction.id}.pdf',
@@ -76,22 +90,25 @@ class TransactionDetailView extends StatelessWidget {
           );
         },
       );
+
     } catch (e) {
+      // Pastikan dialog loading ditutup jika terjadi error
       if (Navigator.of(context).canPop()) {
         Navigator.pop(context);
       }
       showAppMessageDialog(
         context,
         title: 'Error Generating PDF',
-        message: 'Failed to generate PDF: ${e.toString()}',
+        message: 'Failed to generate PDF',
       );
+      debugPrint('Error generating PDF: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final currencyFormatter = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
-    final dateFormatter = DateFormat('dd MMMM HH:mm');
+    final dateFormatter = DateFormat('dd MMMM HH:mm'); 
 
     return Scaffold(
       appBar: AppBar(
@@ -123,10 +140,9 @@ class TransactionDetailView extends StatelessWidget {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
                 ),
                 const SizedBox(height: 10),
-                // Untuk tampilan Flutter, gunakan widget Flutter
-                ..._buildItemsTableFlutter(transaction.items, currencyFormatter),
+                _buildItemsTable(transaction.items, currencyFormatter),
                 const Divider(height: 30, thickness: 2),
-                const SizedBox(height: 10), // Gunakan SizedBox Flutter, bukan pw.SizedBox
+                const SizedBox(height: 10),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -142,6 +158,7 @@ class TransactionDetailView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
+                // Tombol untuk generate & share PDF
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -153,7 +170,7 @@ class TransactionDetailView extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),
-                      backgroundColor: Colors.redAccent,
+                      backgroundColor: Colors.redAccent, // Warna merah untuk aksi PDF
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -166,6 +183,7 @@ class TransactionDetailView extends StatelessWidget {
     );
   }
 
+  /// Helper to build a consistent detail row.
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -173,7 +191,7 @@ class TransactionDetailView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 120, // Fixed width for labels
             child: Text(
               label,
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
@@ -190,90 +208,40 @@ class TransactionDetailView extends StatelessWidget {
     );
   }
 
-  /// Untuk tampilan Flutter
-  List<Widget> _buildItemsTableFlutter(List<TransactionItem> items, NumberFormat formatter) {
-    return [
-      Table(
-        border: TableBorder.all(),
-        children: [
-          TableRow(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text('Layanan', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text('Qty', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text('Harga', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text('Subtotal', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          ...items.map((item) => TableRow(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(item.serviceName),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(item.quantity.toString()),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(formatter.format(item.servicePrice)),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(formatter.format(item.subtotal)),
-              ),
-            ],
-          )),
-        ],
-      ),
-      const SizedBox(height: 10),
-    ];
-  }
-
-  /// Untuk PDF (gunakan di PdfInvoiceService, bukan di UI Flutter)
-  pw.Widget buildItemsTablePdf(List<TransactionItem> items, NumberFormat formatter) {
+  /// Helper to build the table for service items for Flutter UI.
+  Widget _buildItemsTable(List<TransactionItem> items, NumberFormat formatter) {
+    // Header tabel
     final headers = ['Layanan', 'Qty', 'Harga', 'Subtotal'];
-    final data = items.map((item) {
-      return [
-        item.serviceName,
-        item.quantity.toString(),
-        formatter.format(item.servicePrice),
-        formatter.format(item.subtotal),
-      ];
-    }).toList();
 
-    return pw.Table.fromTextArray(
-      headers: headers,
-      data: data,
-      border: pw.TableBorder.all(color: PdfColors.grey500),
-      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.black),
-      cellAlignment: pw.Alignment.centerLeft,
-      cellAlignments: {
-        0: pw.Alignment.centerLeft,
-        1: pw.Alignment.center,
-        2: pw.Alignment.centerRight,
-        3: pw.Alignment.centerRight,
+    return Table(
+      columnWidths: const {
+        0: FlexColumnWidth(3), // Service Name
+        1: FlexColumnWidth(1), // Qty
+        2: FlexColumnWidth(2), // Price
+        3: FlexColumnWidth(2), // Subtotal
       },
-      columnWidths: {
-        0: const pw.FlexColumnWidth(3),
-        1: const pw.FlexColumnWidth(1),
-        2: const pw.FlexColumnWidth(2),
-        3: const pw.FlexColumnWidth(2),
-      },
-      headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-      cellPadding: const pw.EdgeInsets.all(8),
+      border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8.0)),
+      children: [
+        TableRow(
+          decoration: BoxDecoration(color: Colors.blueGrey.shade50, borderRadius: BorderRadius.circular(8.0)),
+          children: const [
+            Padding(padding: EdgeInsets.all(8.0), child: Text('Service', style: TextStyle(fontWeight: FontWeight.bold))),
+            Padding(padding: EdgeInsets.all(8.0), child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+            Padding(padding: EdgeInsets.all(8.0), child: Text('Price', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+            Padding(padding: EdgeInsets.all(8.0), child: Text('Subtotal', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+          ],
+        ),
+        ...items.map((item) {
+          return TableRow(
+            children: [
+              Padding(padding: const EdgeInsets.all(8.0), child: Text(item.serviceName)),
+              Padding(padding: const EdgeInsets.all(8.0), child: Text(item.quantity.toString(), textAlign: TextAlign.center)),
+              Padding(padding: const EdgeInsets.all(8.0), child: Text(formatter.format(item.servicePrice), textAlign: TextAlign.right)),
+              Padding(padding: const EdgeInsets.all(8.0), child: Text(formatter.format(item.subtotal), textAlign: TextAlign.right)),
+            ],
+          );
+        }).toList(),
+      ],
     );
   }
 }
