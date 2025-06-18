@@ -45,8 +45,8 @@ class PdfInvoiceService {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Nama Perusahaan: AC Teknik Semangan Pagi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Alamat: Paseban Barat B7 No.78 Kopo Kencana, Kota Bandung'),
+                    pw.Text('Nama Perusahaan: AC Teknik Semangat Pagi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Alamat: Paseban Barat B7 No.78 \nKopo Kencana, Kota Bandung'),
                     pw.Text('Telepon: 0813-2011-1868'),
                     pw.Text('Email: info@serviceacku.com'),
                   ],
@@ -54,7 +54,7 @@ class PdfInvoiceService {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.Text('Tanggal Invoice: ${dateFormatter.format(DateTime.now())}'),
+                    pw.Text('Tanggal: ${dateFormatter.format(DateTime.now())}'),
                     pw.Text('Invoice # ${transaction.id ?? 'N/A'}'), // Gunakan ID transaksi sebagai nomor invoice
                   ],
                 ),
