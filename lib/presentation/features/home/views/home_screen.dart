@@ -1,9 +1,12 @@
 // lib/presentation/features/home/views/home_screen.dart
 
-import 'package:flutter/material.dart'; // Import ini diperbaiki
+import 'package:flutter/material.dart';
 import 'package:app_pos_ac/presentation/features/service_items/views/service_item_list_view.dart';
-import 'package:app_pos_ac/presentation/features/transactions/views/transaction_history_view.dart'; // Diaktifkan kembali
-import 'package:app_pos_ac/presentation/features/transactions/views/transaction_input_view.dart'; // Diaktifkan kembali
+import 'package:app_pos_ac/presentation/features/transactions/views/transaction_history_view.dart';
+import 'package:app_pos_ac/presentation/features/transactions/views/transaction_input_view.dart';
+import 'package:app_pos_ac/presentation/features/reports/views/financial_summary_view.dart';
+import 'package:app_pos_ac/presentation/features/expenses/views/expense_input_view.dart'; // Import for Add Expense
+import 'package:app_pos_ac/presentation/features/expenses/views/expense_history_view.dart'; // <--- TAMBAHKAN IMPORT INI
 
 /// The main home screen of the application.
 class HomeScreen extends StatelessWidget {
@@ -22,6 +25,8 @@ class HomeScreen extends StatelessWidget {
           crossAxisSpacing: 16.0,
           mainAxisSpacing: 16.0,
           children: [
+            // Urutan yang Anda inginkan:
+            // 1. Manage Services
             _buildFeatureCard(
               context,
               icon: Icons.build,
@@ -33,31 +38,66 @@ class HomeScreen extends StatelessWidget {
                 );
               },
             ),
+            // 2. New Transaction
             _buildFeatureCard(
               context,
               icon: Icons.receipt_long,
               title: 'New Transaction',
               onTap: () {
-                // Navigate to Transaction Input View
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const TransactionInputView()),
                 );
               },
             ),
+            // 3. Transaction History
             _buildFeatureCard(
               context,
               icon: Icons.history,
               title: 'Transaction History',
               onTap: () {
-                // Navigate to Transaction History View
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const TransactionHistoryView()),
                 );
               },
             ),
-            // Tambahkan lebih banyak kartu fitur sesuai kebutuhan
+            // 4. Add Expense
+            _buildFeatureCard(
+              context,
+              icon: Icons.add_shopping_cart,
+              title: 'Add Expense',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ExpenseInputView()),
+                );
+              },
+            ),
+            // 5. Expense History <--- KARTU BARU UNTUK RIWAYAT PENGELUARAN
+            _buildFeatureCard(
+              context,
+              icon: Icons.account_balance_wallet, // Icon untuk riwayat pengeluaran
+              title: 'Expense History',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ExpenseHistoryView()),
+                );
+              },
+            ),
+            // 6. Financial Summary (Jika ada)
+            _buildFeatureCard(
+              context,
+              icon: Icons.analytics,
+              title: 'Financial Summary',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const FinancialSummaryView()),
+                );
+              },
+            ),
           ],
         ),
       ),

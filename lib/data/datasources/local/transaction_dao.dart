@@ -1,92 +1,119 @@
 // lib/data/datasources/local/transaction_dao.dart
 
-import 'package:sqflite/sqflite.dart'; // No 'hide' needed anymore!
+import 'dart:convert'; // For json.decode and json.encode
+import 'package:sqflite/sqflite.dart';
+import 'package:app_pos_ac/data/datasources/local/database_helper.dart'; // Import DatabaseHelper
+import 'package:app_pos_ac/data/models/transaction.dart'; // Mengimpor model TransactionAC
+import 'package:app_pos_ac/data/models/transaction_item.dart'; // Mengimpor model TransactionItem
 import 'package:app_pos_ac/core/constants/app_constants.dart';
-import 'package:app_pos_ac/data/datasources/local/database_helper.dart';
-import 'package:app_pos_ac/data/models/transaction.dart'; // Now imports TransactionAC (from this file)
-import 'dart:developer'; // Import untuk menggunakan log
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // For provider
 
-/// Data Access Object (DAO) for Transaction operations.
+/// Data Access Object (DAO) for TransactionAC related database operations.
 class TransactionDao {
-  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+  final DatabaseHelper _databaseHelper;
 
-  /// Inserts a new [TransactionAC] into the database.
-  /// Returns the ID of the newly inserted row.
+  TransactionDao(this._databaseHelper);
+
+  /// Converts a Map from the database to a [TransactionAC] object.
+  /// Handles deserialization of the 'items' JSON string back to List<TransactionItem>.
+  TransactionAC _fromMap(Map<String, dynamic> map) {
+    // Deserialize 'items' from JSON string back to List<TransactionItem>
+    final List<dynamic> itemsJson = json.decode(map['items'] as String);
+    final List<TransactionItem> items = itemsJson
+        .map((itemMap) => TransactionItem.fromMap(itemMap as Map<String, dynamic>))
+        .toList();
+
+    return TransactionAC(
+      id: map['id'] as int?,
+      date: DateTime.parse(map['date'] as String),
+      customerName: map['customerName'] as String,
+      customerAddress: map['customerAddress'] as String?,
+      total: map['total'] as double,
+      items: items,
+    );
+  }
+
+  /// Converts a [TransactionAC] object to a Map for database operations.
+  /// Handles serialization of List<TransactionItem> to JSON string for 'items' column.
+  Map<String, dynamic> _toMap(TransactionAC transaction) {
+    // Serialize List<TransactionItem> to JSON string
+    final String itemsJson = json.encode(transaction.items.map((item) => item.toMap()).toList());
+
+    return {
+      'id': transaction.id,
+      'date': transaction.date.toIso8601String(),
+      'customerName': transaction.customerName,
+      'customerAddress': transaction.customerAddress,
+      'total': transaction.total,
+      'items': itemsJson,
+    };
+  }
+
+  /// Inserts a new transaction into the database.
   Future<int> insertTransaction(TransactionAC transaction) async {
     final db = await _databaseHelper.database;
-    // Log data sebelum disimpan
-    log('TransactionDao: Inserting transaction with total: ${transaction.total} and items: ${transaction.items.length}');
-    log('TransactionDao: Transaction toMap data: ${transaction.toMap()}');
-
-    final id = await db.insert(
-      AppConstants.transactionsTableName,
-      transaction.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-    log('TransactionDao: Inserted transaction with ID: $id');
+    final Map<String, dynamic> data = _toMap(transaction);
+    final int id = await db.insert(AppConstants.transactionsTableName, data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     return id;
   }
 
-  /// Retrieves all [TransactionAC]s from the database, ordered by date descending.
+  /// Retrieves all transactions from the database, ordered by date descending.
   Future<List<TransactionAC>> getTransactions() async {
     final db = await _databaseHelper.database;
-    // Order by date descending to show most recent transactions first.
     final List<Map<String, dynamic>> maps = await db.query(
       AppConstants.transactionsTableName,
       orderBy: 'date DESC',
     );
-
-    log('TransactionDao: Retrieved ${maps.length} transaction maps from DB.');
-
-    // Convert List<Map<String, dynamic>> to List<TransactionAC>.
-    return List.generate(maps.length, (i) {
-      final transactionMap = maps[i];
-      // Log data setelah diambil dari DB, sebelum konversi
-      log('TransactionDao: Raw map for transaction ${transactionMap['id']}: $transactionMap');
-      final transaction = TransactionAC.fromMap(transactionMap);
-      // Log total setelah dikonversi ke model TransactionAC
-      log('TransactionDao: Converted transaction ${transaction.id} total: ${transaction.total}');
-      return transaction;
-    });
+    return List.generate(maps.length, (i) => _fromMap(maps[i]));
   }
 
-  /// Retrieves a single [TransactionAC] by its ID.
+  /// Retrieves transactions within a specific date range.
+  /// Dates should be DateTime objects.
+  Future<List<TransactionAC>> getTransactionsByDateRange(DateTime startDate, DateTime endDate) async {
+    final db = await _databaseHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      AppConstants.transactionsTableName,
+      where: 'date BETWEEN ? AND ?',
+      whereArgs: [
+        startDate.toIso8601String(),
+        endDate.toIso8601String(),
+      ],
+      orderBy: 'date DESC',
+    );
+    return List.generate(maps.length, (i) => _fromMap(maps[i]));
+  }
+
+  /// Retrieves a single transaction by its ID.
   Future<TransactionAC?> getTransactionById(int id) async {
     final db = await _databaseHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       AppConstants.transactionsTableName,
       where: 'id = ?',
       whereArgs: [id],
-      limit: 1,
     );
     if (maps.isNotEmpty) {
-      final transactionMap = maps.first;
-      log('TransactionDao: Raw map for single transaction $id: $transactionMap');
-      final transaction = TransactionAC.fromMap(transactionMap);
-      log('TransactionDao: Converted single transaction $id total: ${transaction.total}');
-      return transaction;
+      return _fromMap(maps.first);
     }
     return null;
   }
 
-  /// Updates an existing [TransactionAC] in the database.
-  /// Returns the number of rows affected.
+  /// Updates an existing transaction in the database.
   Future<int> updateTransaction(TransactionAC transaction) async {
     final db = await _databaseHelper.database;
-    log('TransactionDao: Updating transaction ${transaction.id} with total: ${transaction.total}');
+    final Map<String, dynamic> data = _toMap(transaction);
     return await db.update(
       AppConstants.transactionsTableName,
-      transaction.toMap(),
+      data,
       where: 'id = ?',
       whereArgs: [transaction.id],
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  /// Deletes a [TransactionAC] from the database by its ID.
-  /// Returns the number of rows affected.
+  /// Deletes a transaction from the database by its ID.
   Future<int> deleteTransaction(int id) async {
     final db = await _databaseHelper.database;
-    log('TransactionDao: Deleting transaction with ID: $id');
     return await db.delete(
       AppConstants.transactionsTableName,
       where: 'id = ?',
@@ -94,3 +121,15 @@ class TransactionDao {
     );
   }
 }
+
+/// Provider for [TransactionDao].
+/// Bergantung pada [databaseHelperProvider] yang menyediakan instance DatabaseHelper.
+final transactionDaoProvider = Provider<TransactionDao>((ref) {
+  final databaseHelper = ref.watch(databaseHelperProvider);
+  return TransactionDao(databaseHelper);
+});
+
+// Anda mungkin perlu memastikan databaseHelperProvider ada, contohnya:
+final databaseHelperProvider = Provider<DatabaseHelper>((ref) {
+  return DatabaseHelper.instance;
+});

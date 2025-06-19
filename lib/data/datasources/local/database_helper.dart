@@ -61,16 +61,37 @@ class DatabaseHelper {
         items TEXT NOT NULL
       )
     ''');
+
+    // --- TAMBAHKAN TABEL PENGELUARAN BARU DI SINI ---
+    await db.execute('''
+      CREATE TABLE ${AppConstants.expensesTableName}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date TEXT NOT NULL
+      )
+    ''');
+    // --- AKHIR TAMBAHAN ---
   }
 
   /// Callback function to handle database upgrades.
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Implement database migration logic here if schema changes in future versions.
-    // For example:
-    // if (oldVersion < 2) {
-    //   await db.execute("ALTER TABLE transactions ADD COLUMN new_column TEXT;");
-    // }
-    // This example currently does nothing for upgrades as it's version 1.
+    // PENTING: Untuk menambahkan tabel baru, Anda HARUS meningkatkan databaseVersion
+    // di AppConstants dan menambahkan logika di sini untuk versi yang lebih baru.
+    // Jika tidak, tabel pengeluaran tidak akan dibuat di database yang sudah ada.
+    if (oldVersion < newVersion) {
+      if (newVersion == 2) { // Contoh: Jika versi baru adalah 2
+         await db.execute('''
+           CREATE TABLE ${AppConstants.expensesTableName}(
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             description TEXT NOT NULL,
+             amount REAL NOT NULL,
+             date TEXT NOT NULL
+           )
+         ''');
+      }
+      // Tambahkan logika upgrade lain di sini jika ada perubahan skema di masa mendatang
+    }
   }
 
   /// Closes the database.
@@ -81,4 +102,3 @@ class DatabaseHelper {
     }
   }
 }
-// This class provides methods to initialize the database, create tables, and manage database versions.

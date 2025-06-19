@@ -3,7 +3,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_pos_ac/data/datasources/local/transaction_dao.dart'; // Pastikan jalur ini benar
 import 'package:app_pos_ac/data/models/transaction.dart'; // Mengimpor model TransactionAC
-import 'package:app_pos_ac/presentation/providers/database_providers.dart'; // <--- Import ini yang ditambahkan
 
 /// Repository untuk mengelola data TransactionAC.
 /// Layer ini mengabstraksi sumber data (misalnya, database lokal) dari bagian aplikasi lainnya.
@@ -23,6 +22,12 @@ class TransactionRepository {
   /// Mengembalikan daftar [TransactionAC].
   Future<List<TransactionAC>> getTransactions() {
     return _transactionDao.getTransactions();
+  }
+
+  /// Mengambil [TransactionAC] berdasarkan rentang tanggal dari database.
+  /// Mengembalikan daftar [TransactionAC].
+  Future<List<TransactionAC>> getTransactionsByDateRange(DateTime startDate, DateTime endDate) {
+    return _transactionDao.getTransactionsByDateRange(startDate, endDate); // <-- Panggil metode dari DAO
   }
 
   /// Mengambil satu [TransactionAC] berdasarkan ID-nya.
