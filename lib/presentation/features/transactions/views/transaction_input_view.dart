@@ -2,7 +2,6 @@
 
     import 'package:flutter/material.dart';
     import 'package:flutter_riverpod/flutter_riverpod.dart';
-    import 'package:app_pos_ac/data/models/service_item.dart';
     import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart';
     import 'package:app_pos_ac/presentation/features/service_items/viewmodels/service_item_viewmodel.dart'; // To get available service items
     import 'package:app_pos_ac/presentation/features/transactions/viewmodels/transaction_input_viewmodel.dart';

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart';
 import 'package:app_pos_ac/presentation/features/transactions/viewmodels/transaction_history_viewmodel.dart';
-import 'package:app_pos_ac/data/models/transaction.dart'; // TransactionAC
 import 'package:intl/intl.dart';
 
 /// Displays a list of all recorded transactions.

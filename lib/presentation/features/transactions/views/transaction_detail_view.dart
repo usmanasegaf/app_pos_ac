@@ -8,7 +8,6 @@ import 'package:printing/printing.dart';
 import 'package:app_pos_ac/services/pdf_invoice_service.dart'; // Import service PDF
 import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart'; // Import dialogs
 import 'package:pdf/pdf.dart'; // Untuk PdfPageFormat di Printing.layoutPdf
-import 'package:pdf/widgets.dart' as pw; // Untuk pw.Widget di _buildItemsTable
 import 'package:flutter/services.dart' show rootBundle; // Import ini untuk memuat aset
 import 'dart:typed_data'; // Untuk ByteData dan Uint8List
 
