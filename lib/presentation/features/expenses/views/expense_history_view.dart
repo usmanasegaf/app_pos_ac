@@ -20,7 +20,10 @@ class ExpenseHistoryView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Expense History'),
+        title: const Text('Expense History',
+          style: TextStyle(color: Colors.black),),
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.black), // Set icon color to black
       ),
       body: expensesAsyncValue.when(
         data: (expenses) {

@@ -1,5 +1,3 @@
-// lib/presentation/features/transactions/views/transaction_history_view.dart
-
 import 'package:app_pos_ac/presentation/features/transactions/views/transaction_detail_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +17,10 @@ class TransactionHistoryView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transaction History'),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        foregroundColor: Colors.black,
+        title: const Text('Riwayat Transaksi'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -46,15 +47,17 @@ class TransactionHistoryView extends ConsumerWidget {
               final transaction = transactions[index];
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                elevation: 2,
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                   title: Text(
                     '${transaction.customerName} - ${dateFormatter.format(transaction.date)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   subtitle: Text(
                     'Total: ${currencyFormatter.format(transaction.total)}',
-                    style: TextStyle(color: Colors.green[700]),
+                    style: TextStyle(color: Colors.green[700], fontSize: 14),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -62,7 +65,6 @@ class TransactionHistoryView extends ConsumerWidget {
                       IconButton(
                         icon: const Icon(Icons.info, color: Colors.blue),
                         onPressed: () {
-                          // Navigate to transaction detail view (create this next)
                           Navigator.push(
                             context,
                             MaterialPageRoute(

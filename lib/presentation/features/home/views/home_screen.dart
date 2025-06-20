@@ -1,102 +1,59 @@
-// lib/presentation/features/home/views/home_screen.dart
-
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:app_pos_ac/presentation/features/service_items/views/service_item_list_view.dart';
 import 'package:app_pos_ac/presentation/features/transactions/views/transaction_history_view.dart';
 import 'package:app_pos_ac/presentation/features/transactions/views/transaction_input_view.dart';
 import 'package:app_pos_ac/presentation/features/reports/views/financial_summary_view.dart';
-import 'package:app_pos_ac/presentation/features/expenses/views/expense_input_view.dart'; // Import for Add Expense
-import 'package:app_pos_ac/presentation/features/expenses/views/expense_history_view.dart'; // <--- TAMBAHKAN IMPORT INI
+import 'package:app_pos_ac/presentation/features/expenses/views/expense_input_view.dart';
+import 'package:app_pos_ac/presentation/features/expenses/views/expense_history_view.dart';
 
-/// The main home screen of the application.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final items = [
+      [Icons.build, 'Kelola Layanan', const ServiceItemListView()],
+      [Icons.receipt_long, 'Transaksi Baru', const TransactionInputView()],
+      [Icons.history, 'Riwayat Transaksi', const TransactionHistoryView()],
+      [Icons.add_shopping_cart, 'Tambah Pengeluaran', const ExpenseInputView()],
+      [Icons.account_balance_wallet, 'Riwayat Pengeluaran', const ExpenseHistoryView()],
+      [Icons.analytics, 'Ringkasan Keuangan', const FinancialSummaryView()],
+    ];
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('POS AC Service App'),
-      ),
+      backgroundColor: const Color(0xFFF5F6FA),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16.0,
-          mainAxisSpacing: 16.0,
+        padding: const EdgeInsets.fromLTRB(24, 60, 24, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Urutan yang Anda inginkan:
-            // 1. Manage Services
-            _buildFeatureCard(
-              context,
-              icon: Icons.build,
-              title: 'Manage Services',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ServiceItemListView()),
-                );
-              },
-            ),
-            // 2. New Transaction
-            _buildFeatureCard(
-              context,
-              icon: Icons.receipt_long,
-              title: 'New Transaction',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TransactionInputView()),
-                );
-              },
-            ),
-            // 3. Transaction History
-            _buildFeatureCard(
-              context,
-              icon: Icons.history,
-              title: 'Transaction History',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TransactionHistoryView()),
-                );
-              },
-            ),
-            // 4. Add Expense
-            _buildFeatureCard(
-              context,
-              icon: Icons.add_shopping_cart,
-              title: 'Add Expense',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ExpenseInputView()),
-                );
-              },
-            ),
-            // 5. Expense History <--- KARTU BARU UNTUK RIWAYAT PENGELUARAN
-            _buildFeatureCard(
-              context,
-              icon: Icons.account_balance_wallet, // Icon untuk riwayat pengeluaran
-              title: 'Expense History',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ExpenseHistoryView()),
-                );
-              },
-            ),
-            // 6. Financial Summary (Jika ada)
-            _buildFeatureCard(
-              context,
-              icon: Icons.analytics,
-              title: 'Financial Summary',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const FinancialSummaryView()),
-                );
-              },
+            Text('Selamat Datang!',
+                style: GoogleFonts.roboto(
+                    fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const SizedBox(height: 4),
+            Text('Aplikasi POS AC Service Anda.',
+                style: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)),
+            const SizedBox(height: 24),
+            Expanded(
+              child: GridView.builder(
+                itemCount: items.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 20,
+                  mainAxisSpacing: 20,
+                  childAspectRatio: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return _buildFormalCard(
+                    icon: item[0] as IconData,
+                    title: item[1] as String,
+                    onTap: () => Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => item[2] as Widget)),
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -104,29 +61,41 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// Helper method untuk membangun kartu fitur yang dapat disesuaikan.
-  Widget _buildFeatureCard(BuildContext context, {
+  Widget _buildFormalCard({
     required IconData icon,
     required String title,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(15.0),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: const Offset(2, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 50, color: Theme.of(context).primaryColor),
-            const SizedBox(height: 10),
+            Icon(icon, size: 36, color: Colors.indigo.shade700),
+            const SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: GoogleFonts.roboto(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
           ],
         ),

@@ -1,16 +1,14 @@
-// lib/presentation/features/expenses/views/expense_input_view.dart
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Untuk FilteringTextInputFormatter
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:app_pos_ac/data/models/expense.dart'; // Import model Expense
-import 'package:app_pos_ac/presentation/features/expenses/viewmodels/expense_viewmodel.dart'; // Import ExpenseViewModel
-import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart'; // Import helper dialog
+import 'package:app_pos_ac/data/models/expense.dart';
+import 'package:app_pos_ac/presentation/features/expenses/viewmodels/expense_viewmodel.dart';
+import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart';
 
 /// A form view for adding or editing an expense.
 class ExpenseInputView extends ConsumerStatefulWidget {
-  final Expense? expenseToEdit; // Optional: for editing existing expense
+  final Expense? expenseToEdit;
 
   const ExpenseInputView({super.key, this.expenseToEdit});
 
@@ -39,7 +37,6 @@ class _ExpenseInputViewState extends ConsumerState<ExpenseInputView> {
     super.dispose();
   }
 
-  /// Function to show a date picker and update _selectedDate.
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -54,23 +51,20 @@ class _ExpenseInputViewState extends ConsumerState<ExpenseInputView> {
     }
   }
 
-  /// Handles form submission (add or update expense).
   Future<void> _submitForm() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final String description = _descriptionController.text.trim();
-      final double amount = double.tryParse(_amountController.text) ?? 0.0;
+      final description = _descriptionController.text.trim();
+      final amount = double.tryParse(_amountController.text) ?? 0.0;
 
       final expenseNotifier = ref.read(expenseProvider.notifier);
 
       try {
         if (widget.expenseToEdit == null) {
-          // Add new expense
           await expenseNotifier.addExpense(description, amount, _selectedDate);
           if (mounted) {
             await showAppMessageDialog(context, title: 'Success', message: 'Expense added successfully!');
           }
         } else {
-          // Update existing expense
           await expenseNotifier.updateExpense(
             widget.expenseToEdit!.id!,
             description,
@@ -81,7 +75,7 @@ class _ExpenseInputViewState extends ConsumerState<ExpenseInputView> {
             await showAppMessageDialog(context, title: 'Success', message: 'Expense updated successfully!');
           }
         }
-        if (mounted) Navigator.pop(context); // Go back to previous view
+        if (mounted) Navigator.pop(context);
       } catch (e) {
         if (mounted) {
           await showAppMessageDialog(context, title: 'Error', message: e.toString());
@@ -96,27 +90,25 @@ class _ExpenseInputViewState extends ConsumerState<ExpenseInputView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.expenseToEdit == null ? 'Add Expense' : 'Edit Expense'),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        foregroundColor: Colors.black,
+        title: Text(widget.expenseToEdit == null ? 'Tambah Pengeluaran' : 'Edit Pengeluaran'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
             children: [
               TextFormField(
                 controller: _descriptionController,
                 decoration: InputDecoration(
                   labelText: 'Description',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                  prefixIcon: const Icon(Icons.description),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Description cannot be empty.';
-                  }
-                  return null;
-                },
+                validator: (value) => (value == null || value.isEmpty) ? 'Description cannot be empty.' : null,
               ),
               const SizedBox(height: 16.0),
               TextFormField(
@@ -124,25 +116,21 @@ class _ExpenseInputViewState extends ConsumerState<ExpenseInputView> {
                 decoration: InputDecoration(
                   labelText: 'Amount (Rp)',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                  prefixIcon: const Icon(Icons.attach_money),
                   prefixText: 'Rp ',
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true), // Hanya angka positif
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')), // Hanya angka dan titik desimal
+                  FilteringTextInputFormatter.allow(RegExp(r'^[0-9]+\.?[0-9]*')),
                 ],
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Amount cannot be empty.';
-                  }
+                  if (value == null || value.isEmpty) return 'Amount cannot be empty.';
                   final amount = double.tryParse(value);
-                  if (amount == null || amount <= 0) {
-                    return 'Amount must be a positive number.';
-                  }
+                  if (amount == null || amount <= 0) return 'Amount must be a positive number.';
                   return null;
                 },
               ),
               const SizedBox(height: 16.0),
-              // Date Picker Field
               GestureDetector(
                 onTap: () => _selectDate(context),
                 child: AbsorbPointer(
@@ -151,29 +139,27 @@ class _ExpenseInputViewState extends ConsumerState<ExpenseInputView> {
                     decoration: InputDecoration(
                       labelText: 'Date',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                      suffixIcon: const Icon(Icons.calendar_today),
+                      prefixIcon: const Icon(Icons.calendar_today),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Date cannot be empty.';
-                      }
-                      return null;
-                    },
+                    validator: (value) => (value == null || value.isEmpty) ? 'Date cannot be empty.' : null,
                   ),
                 ),
               ),
               const SizedBox(height: 24.0),
-              ElevatedButton.icon(
-                onPressed: _submitForm,
-                icon: Icon(widget.expenseToEdit == null ? Icons.add : Icons.save),
-                label: Text(widget.expenseToEdit == null ? 'Add Expense' : 'Save Changes'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _submitForm,
+                  icon: Icon(widget.expenseToEdit == null ? Icons.add : Icons.save),
+                  label: Text(widget.expenseToEdit == null ? 'Tambah Pengeluaran' : 'Save Changes'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
                   ),
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
                 ),
               ),
             ],

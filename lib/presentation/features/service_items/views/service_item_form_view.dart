@@ -1,14 +1,11 @@
-// lib/presentation/features/service_items/views/service_item_form_view.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_pos_ac/data/models/service_item.dart';
 import 'package:app_pos_ac/presentation/features/service_items/viewmodels/service_item_viewmodel.dart';
-import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart'; // Import for dialogs
+import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart';
 
-/// A form view for adding or editing a service item.
 class ServiceItemFormView extends ConsumerStatefulWidget {
-  final ServiceItem? serviceItem; // Optional: for editing existing item
+  final ServiceItem? serviceItem;
 
   const ServiceItemFormView({super.key, this.serviceItem});
 
@@ -25,7 +22,8 @@ class _ServiceItemFormViewState extends ConsumerState<ServiceItemFormView> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.serviceItem?.name ?? '');
-    _priceController = TextEditingController(text: widget.serviceItem?.price.toString() ?? '');
+    _priceController = TextEditingController(
+        text: widget.serviceItem?.price.toStringAsFixed(0) ?? '');
   }
 
   @override
@@ -35,53 +33,49 @@ class _ServiceItemFormViewState extends ConsumerState<ServiceItemFormView> {
     super.dispose();
   }
 
-  /// Handles the form submission (add or update).
   Future<void> _submitForm() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final String name = _nameController.text.trim();
-      final double price = double.tryParse(_priceController.text) ?? 0.0;
-
+      final name = _nameController.text.trim();
+      final price = double.tryParse(_priceController.text) ?? 0.0;
       final serviceItemNotifier = ref.read(serviceItemProvider.notifier);
 
-try {
-  final newItem = ServiceItem(
-    id: widget.serviceItem?.id, // id bisa null untuk item baru
-    name: name,
-    price: price,
-  );
+      try {
+        final newItem = ServiceItem(
+          id: widget.serviceItem?.id,
+          name: name,
+          price: price,
+        );
 
-  if (widget.serviceItem == null) {
-    // Add new item
-    await serviceItemNotifier.addServiceItem(newItem);
-    if (mounted) {
-      await showAppMessageDialog(
-        context,
-        title: 'Success',
-        message: 'Service item added successfully!',
-      );
-    }
-  } else {
-    // Update existing item
-    await serviceItemNotifier.updateServiceItem(newItem);
-    if (mounted) {
-      await showAppMessageDialog(
-        context,
-        title: 'Success',
-        message: 'Service item updated successfully!',
-      );
-    }
-  }
+        if (widget.serviceItem == null) {
+          await serviceItemNotifier.addServiceItem(newItem);
+          if (mounted) {
+            await showAppMessageDialog(
+              context,
+              title: 'Berhasil',
+              message: 'Layanan berhasil ditambahkan.',
+            );
+          }
+        } else {
+          await serviceItemNotifier.updateServiceItem(newItem);
+          if (mounted) {
+            await showAppMessageDialog(
+              context,
+              title: 'Berhasil',
+              message: 'Layanan berhasil diperbarui.',
+            );
+          }
+        }
 
-  if (mounted) Navigator.pop(context); // Go back to list view
-} catch (e) {
-  if (mounted) {
-    await showAppMessageDialog(
-      context,
-      title: 'Error',
-      message: e.toString(),
-    );
-  }
-}
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        if (mounted) {
+          await showAppMessageDialog(
+            context,
+            title: 'Error',
+            message: e.toString(),
+          );
+        }
+      }
     }
   }
 
@@ -89,8 +83,12 @@ try {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.serviceItem == null ? 'Add Service Item' : 'Edit Service Item'),
+        title: Text(widget.serviceItem == null ? 'Tambah Layanan' : 'Edit Layanan'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0.5,
       ),
+      backgroundColor: const Color(0xFFF5F6FA),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -100,56 +98,40 @@ try {
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: 'Service Name',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
+                  labelText: 'Nama Layanan',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Service name cannot be empty';
-                  }
-                  return null;
-                },
+                validator: (value) =>
+                    (value == null || value.isEmpty) ? 'Nama layanan wajib diisi' : null,
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _priceController,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Price',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  prefixText: 'Rp ', // Menambahkan prefix Rupiah
+                  labelText: 'Harga',
+                  prefixText: 'Rp ',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                // --- PENTING: Pastikan ini benar dan tidak diubah ---
-                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Price cannot be empty';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Invalid price format';
-                  }
-                  // Tidak ada validasi `price < 0` di sini
+                  if (value == null || value.isEmpty) return 'Harga wajib diisi';
+                  if (double.tryParse(value) == null) return 'Format harga tidak valid';
                   return null;
                 },
-                // --- Akhir Perubahan ---
               ),
-              const SizedBox(height: 24.0),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _submitForm,
                   icon: Icon(widget.serviceItem == null ? Icons.add : Icons.save),
-                  label: Text(widget.serviceItem == null ? 'Add Service' : 'Save Changes'),
+                  label: Text(widget.serviceItem == null ? 'Tambah Layanan' : 'Simpan Perubahan'),
+                  onPressed: _submitForm,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    backgroundColor: Theme.of(context).primaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: Colors.indigo,
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),

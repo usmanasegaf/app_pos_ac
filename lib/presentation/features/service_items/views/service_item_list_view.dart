@@ -1,13 +1,10 @@
-// lib/presentation/features/service_items/views/service_item_list_view.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:app_pos_ac/presentation/features/service_items/viewmodels/service_item_viewmodel.dart'; // Revised package name
-import 'package:app_pos_ac/presentation/features/service_items/views/service_item_form_view.dart'; // Revised package name
-import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart'; // Import the dialog helper (Revised package name)
-import 'package:intl/intl.dart'; // For currency formatting
+import 'package:intl/intl.dart';
+import 'package:app_pos_ac/presentation/features/service_items/viewmodels/service_item_viewmodel.dart';
+import 'package:app_pos_ac/presentation/features/service_items/views/service_item_form_view.dart';
+import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart';
 
-/// Displays a list of service items and allows adding/editing/deleting them.
 class ServiceItemListView extends ConsumerWidget {
   const ServiceItemListView({super.key});
 
@@ -17,42 +14,54 @@ class ServiceItemListView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Service Items'),
+        title: const Text('Daftar Layanan'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0.5,
       ),
+      backgroundColor: const Color(0xFFF5F6FA),
       body: serviceItemsAsyncValue.when(
         data: (items) {
           if (items.isEmpty) {
             return const Center(
               child: Text(
-                'No service items added yet.\nTap the + button to add one!',
+                'Belum ada layanan terdaftar.\nTekan tombol + untuk menambahkan.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             );
           }
-          return ListView.builder(
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
             itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final item = items[index];
-              final currencyFormatter = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+              final formatter = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
 
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 6,
+                      offset: const Offset(2, 4),
+                    ),
+                  ],
+                ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  title: Text(
-                    item.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    currencyFormatter.format(item.price),
-                    style: TextStyle(color: Colors.green[700]),
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  title: Text(item.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                  subtitle: Text(formatter.format(item.price),
+                      style: const TextStyle(color: Colors.black54)),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        icon: const Icon(Icons.edit, color: Colors.indigo),
                         onPressed: () {
                           Navigator.push(
                             context,
@@ -67,8 +76,8 @@ class ServiceItemListView extends ConsumerWidget {
                         onPressed: () async {
                           final confirm = await showConfirmationDialog(
                             context,
-                            title: 'Delete Service Item',
-                            content: 'Are you sure you want to delete "${item.name}"?',
+                            title: 'Hapus Layanan',
+                            content: 'Yakin ingin menghapus "${item.name}"?',
                             confirmButtonColor: Colors.red,
                           );
                           if (confirm == true) {
@@ -84,17 +93,13 @@ class ServiceItemListView extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        error: (e, _) => Center(child: Text('Terjadi kesalahan: $e')),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ServiceItemFormView(),
-            ),
-          );
-        },
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ServiceItemFormView()),
+        ),
         child: const Icon(Icons.add),
       ),
     );

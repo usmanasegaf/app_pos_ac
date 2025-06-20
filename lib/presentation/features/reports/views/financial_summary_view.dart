@@ -353,7 +353,10 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Financial Summary'),
+        title: const Text('Financial Summary',
+        style: TextStyle(color: Colors.black),),
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.black), // Set icon color to black
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -367,11 +370,11 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
               data: (summary) {
                 return Column(
                   children: [
-                    _buildSummaryCard(context, 'Total Income', summary.totalIncome, Colors.green),
+                    _buildSummaryCard(context, 'Total Income', summary.totalIncome, const Color.fromARGB(255, 85, 204, 49)),
                     const SizedBox(height: 8.0),
-                    _buildSummaryCard(context, 'Total Expenses', summary.totalExpenses, Colors.red),
+                    _buildSummaryCard(context, 'Total Expenses', summary.totalExpenses, const Color.fromARGB(255, 255, 17, 0)),
                     const SizedBox(height: 8.0),
-                    _buildSummaryCard(context, 'Net Profit', summary.netProfit, Colors.blue),
+                    _buildSummaryCard(context, 'Net Profit', summary.netProfit, const Color.fromARGB(255, 0, 140, 255)),
                   ],
                 );
               },
@@ -483,7 +486,7 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
   Widget _buildSummaryCard(BuildContext context, String title, double amount, Color color) {
     return Card(
       elevation: 2,
-      color: color.withOpacity(0.1),
+      color: Colors.white.withOpacity(0.9),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
@@ -496,7 +499,7 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
             ),
             Text(
               currencyFormatter.format(amount),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color.darken(0.2)),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
             ),
           ],
         ),
