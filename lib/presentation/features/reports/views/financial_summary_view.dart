@@ -353,7 +353,7 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Financial Summary',
+        title: const Text('Ringkasan Keuangan',
         style: TextStyle(color: Colors.black),),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black), // Set icon color to black
