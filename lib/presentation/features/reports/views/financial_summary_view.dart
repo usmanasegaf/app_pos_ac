@@ -3,18 +3,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:app_pos_ac/presentation/features/reports/viewmodels/financial_summary_viewmodel.dart'; // Import ViewModel
-import 'package:app_pos_ac/data/models/transaction.dart'; // Import TransactionAC model
-import 'package:app_pos_ac/data/models/expense.dart'; // Import Expense model
-import 'package:app_pos_ac/data/repositories/transaction_repository.dart'; // Import TransactionRepository
-import 'package:app_pos_ac/data/repositories/expense_repository.dart'; // Import ExpenseRepository
-import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart'; // Untuk dialog pesan
+import 'package:app_pos_ac/presentation/features/reports/viewmodels/financial_summary_viewmodel.dart';
+import 'package:app_pos_ac/data/models/transaction.dart';
+import 'package:app_pos_ac/data/models/expense.dart';
+import 'package:app_pos_ac/data/repositories/transaction_repository.dart';
+import 'package:app_pos_ac/data/repositories/expense_repository.dart';
+import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart';
 
-// Untuk Excel
-import 'package:excel/excel.dart';
+// Import untuk PDF
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw; // Beri alias pw
+import 'package:printing/printing.dart'; // Untuk menyimpan dan membuka PDF
+
 import 'package:path_provider/path_provider.dart';
+import 'dart:io'; // Penting untuk Platform.isAndroid
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
 import 'package:open_filex/open_filex.dart';
 
 /// A view to display financial summary including income, expenses, and net profit.
@@ -28,135 +31,290 @@ class FinancialSummaryView extends ConsumerStatefulWidget {
 class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
   final currencyFormatter = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
   final dateFormatter = DateFormat('dd MMMM HH:mm');
-
-  // Deklarasikan variabel untuk menyimpan data mentah transaksi dan pengeluaran
-  List<TransactionAC> allTransactions = [];
-  List<Expense> allExpenses = [];
+  final pdfDateFormatter = DateFormat('dd MMMM yyyy HH:mm'); // Format tanggal khusus untuk PDF
 
   @override
   void initState() {
     super.initState();
-    // Memuat ulang summary untuk memastikan data awal diambil
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(financialSummaryProvider.notifier).loadFinancialSummary(DateFilter.allTime); // Muat semua data awal
+      ref.read(financialSummaryProvider.notifier).loadFinancialSummary(DateFilter.allTime);
     });
   }
 
-  Future<void> _exportToExcel() async {
-    // Meminta izin penyimpanan
-    var status = await Permission.storage.request();
-    if (!status.isGranted) {
-      if (mounted) {
-        await showAppMessageDialog(
-          context,
-          title: 'Permission Denied',
-          message: 'Storage permission is required to save the report.',
-        );
-      }
-      return;
+  Future<void> _exportToPdf() async {
+    // Menampilkan dialog loading segera
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 10),
+              Text('Generating PDF Report...'),
+            ],
+          ),
+        ),
+      );
     }
 
+    final pdf = pw.Document(); // Inisialisasi dokumen PDF
+
     try {
-      final excel = Excel.createExcel();
-      
-      // Get the default sheet (Sheet1)
-      Sheet sheetSummary = excel['Sheet1']!;
-
-      // Create other sheets by copying Sheet1, then clear their content
-      // PENTING: excel.copy() tidak mengembalikan Sheet, jadi kita perlu mengambilnya setelah dicopy
-      excel.copy('Sheet1', 'Income Details');
-      Sheet sheetIncome = excel['Income Details']!;
-      sheetIncome.removeColumn(0); // Remove dummy column if any
-      sheetIncome.removeRow(0);   // Remove dummy row if any
-
-      excel.copy('Sheet1', 'Expense Details');
-      Sheet sheetExpense = excel['Expense Details']!;
-      sheetExpense.removeColumn(0);
-      sheetExpense.removeRow(0);
-
-      // Now rename Sheet1 to Financial Summary
-      excel.rename('Sheet1', 'Financial Summary');
-
-      // Add data to Summary Sheet
-      sheetSummary.appendRow(['Financial Summary Report', '']);
-      sheetSummary.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('B1'));
-      sheetSummary.appendRow(['Generated On', dateFormatter.format(DateTime.now())]);
-      sheetSummary.appendRow(['Filter Period', ref.read(financialSummaryProvider.notifier).currentFilter.toString().split('.').last.toUpperCase()]);
-      sheetSummary.appendRow([]); // Empty row for spacing
-
-      // Dapatkan data summary terakhir dari provider
-      final currentSummary = ref.read(financialSummaryProvider).value;
-      if (currentSummary != null) {
-        sheetSummary.appendRow(['Total Income', currencyFormatter.format(currentSummary.totalIncome)]);
-        sheetSummary.appendRow(['Total Expenses', currencyFormatter.format(currentSummary.totalExpenses)]);
-        sheetSummary.appendRow(['Net Profit', currencyFormatter.format(currentSummary.netProfit)]);
-      }
-
-      // Add data to Income (Transaction History) Sheet
-      sheetIncome.appendRow(['Transaction ID', 'Date', 'Customer Name', 'Total Amount', 'Service Items']);
-
-      final transactions = allTransactions; // Gunakan data transaksi yang sudah dimuat
-      for (var transaction in transactions) {
-        String items = transaction.items.map((item) => '${item.serviceName} (${item.quantity}x)').join(', '); // <--- item.serviceName
-        sheetIncome.appendRow([
-          transaction.id,
-          dateFormatter.format(transaction.date),
-          transaction.customerName,
-          transaction.total,
-          items,
-        ]);
-      }
-
-      // Add data to Expense History Sheet
-      sheetExpense.appendRow(['Expense ID', 'Date', 'Description', 'Amount']);
-
-      final expenses = allExpenses; // Gunakan data pengeluaran yang sudah dimuat
-      for (var expense in expenses) {
-        sheetExpense.appendRow([
-          expense.id,
-          dateFormatter.format(expense.date),
-          expense.description,
-          expense.amount,
-        ]);
-      }
-      
-      // Simpan file
-      final directory = await getExternalStorageDirectory(); // Menggunakan external storage untuk Android
-      final String filePath = '${directory!.path}/Financial_Report_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.xlsx';
-      final List<int>? excelBytes = excel.encode();
-      if (excelBytes != null) {
-        File(filePath)
-          ..createSync(recursive: true)
-          ..writeAsBytesSync(excelBytes);
-
-        if (mounted) {
-          await showAppMessageDialog(
-            context,
-            title: 'Report Generated',
-            message: 'Financial report saved to $filePath',
-          );
-          OpenFilex.open(filePath); // Buka file setelah disimpan
+      // *** Penanganan Izin Penyimpanan untuk Android ***
+      if (Platform.isAndroid) {
+        if (!await Permission.manageExternalStorage.isGranted) {
+          var status = await Permission.manageExternalStorage.request();
+          if (!status.isGranted) {
+            if (mounted && Navigator.of(context).canPop()) {
+              Navigator.pop(context);
+            }
+            if (mounted) {
+              await showAppMessageDialog(
+                context,
+                title: 'Izin Diperlukan',
+                message: 'Akses ke semua file ditolak. Harap berikan izin "Akses ke semua file" di Pengaturan Aplikasi untuk menyimpan laporan.',
+              );
+              await openAppSettings();
+            }
+            return;
+          }
         }
       } else {
-        throw Exception('Failed to encode Excel file.');
+        var status = await Permission.storage.request();
+        if (!status.isGranted) {
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.pop(context);
+          }
+          if (mounted) {
+            await showAppMessageDialog(
+              context,
+              title: 'Izin Ditolak',
+              message: 'Izin penyimpanan diperlukan untuk menyimpan laporan. Laporan tidak dapat disimpan.',
+            );
+          }
+          return;
+        }
+      }
+
+      // Dapatkan filter saat ini dan data
+      final currentFilter = ref.read(financialSummaryProvider.notifier).currentFilter;
+      DateTime now = DateTime.now();
+      DateTime startDate;
+      DateTime endDate = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+
+      switch (currentFilter) {
+        case DateFilter.today:
+          startDate = DateTime(now.year, now.month, now.day, 0, 0, 0, 0);
+          break;
+        case DateFilter.thisWeek:
+          startDate = DateTime(now.year, now.month, now.day, 0, 0, 0, 0).subtract(Duration(days: now.weekday - 1));
+          break;
+        case DateFilter.thisMonth:
+          startDate = DateTime(now.year, now.month, 1, 0, 0, 0, 0);
+          break;
+        case DateFilter.thisYear:
+          startDate = DateTime(now.year, 1, 1, 0, 0, 0, 0);
+          break;
+        case DateFilter.allTime:
+        default:
+          startDate = DateTime.fromMillisecondsSinceEpoch(0);
+          endDate = DateTime.now().add(const Duration(days: 365 * 100));
+          break;
+      }
+
+      final transactionsRepo = ref.read(transactionRepositoryProvider);
+      final expensesRepo = ref.read(expenseRepositoryProvider);
+      
+      final List<TransactionAC> transactionsToExport = (currentFilter == DateFilter.allTime)
+          ? await transactionsRepo.getTransactions()
+          : await transactionsRepo.getTransactionsByDateRange(startDate, endDate);
+      
+      final List<Expense> expensesToExport = (currentFilter == DateFilter.allTime)
+          ? await expensesRepo.getExpenses()
+          : await expensesRepo.getExpensesByDateRange(startDate, endDate);
+
+      final currentSummary = ref.read(financialSummaryProvider).value;
+
+      // --- Mulai Pembuatan Konten PDF ---
+
+      // Fungsi pembantu untuk membuat tabel PDF
+      pw.Widget _buildPdfTable(List<List<String>> tableData, List<double> widths, {String? title}) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            if (title != null) pw.Text(title, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+            if (title != null) pw.SizedBox(height: 10),
+            pw.Table.fromTextArray(
+              headers: tableData.first,
+              data: tableData.sublist(1),
+              border: pw.TableBorder.all(color: PdfColors.grey),
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              cellAlignment: pw.Alignment.centerLeft,
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+              columnWidths: {
+                for (int i = 0; i < widths.length; i++) i: pw.FlexColumnWidth(widths[i]),
+              },
+              cellPadding: const pw.EdgeInsets.all(5),
+            ),
+            pw.SizedBox(height: 20),
+          ],
+        );
+      }
+
+      // Add pages to the PDF
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            List<pw.Widget> content = [];
+
+            // 1. Financial Summary Section
+            content.add(pw.Center(
+              child: pw.Text('Laporan Keuangan', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 24)),
+            ));
+            content.add(pw.Center(
+              child: pw.Text('Periode: ${currentFilter.toString().split('.').last.toUpperCase().replaceAll('_', ' ')}', style: const pw.TextStyle(fontSize: 12)),
+            ));
+            content.add(pw.Center(
+              child: pw.Text('Dihasilkan Pada: ${pdfDateFormatter.format(DateTime.now())}', style: const pw.TextStyle(fontSize: 10)),
+            ));
+            content.add(pw.SizedBox(height: 30));
+
+            if (currentSummary != null) {
+              content.add(pw.Table.fromTextArray(
+                headers: ['Deskripsi', 'Jumlah'],
+                data: [
+                  ['Total Pendapatan', currencyFormatter.format(currentSummary.totalIncome)],
+                  ['Total Pengeluaran', currencyFormatter.format(currentSummary.totalExpenses)],
+                  ['Laba Bersih', currencyFormatter.format(currentSummary.netProfit)],
+                ],
+                border: pw.TableBorder.all(color: PdfColors.grey),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                cellAlignment: pw.Alignment.centerLeft,
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(3),
+                  1: const pw.FlexColumnWidth(2),
+                },
+                cellPadding: const pw.EdgeInsets.all(5),
+              ));
+              content.add(pw.SizedBox(height: 20));
+            }
+
+            // 2. Income Details Section
+            List<List<String>> incomeData = [
+              ['ID Transaksi', 'Tanggal', 'Nama Pelanggan', 'Jumlah Total', 'Item Layanan']
+            ];
+            for (var transaction in transactionsToExport) {
+              String items = transaction.items.map((item) => '${item.serviceName} (${item.quantity}x)').join(', ');
+              incomeData.add([
+                transaction.id.toString(),
+                pdfDateFormatter.format(transaction.date),
+                transaction.customerName,
+                currencyFormatter.format(transaction.total),
+                items,
+              ]);
+            }
+            if (incomeData.length > 1) { // Hanya tambahkan jika ada data selain header
+              content.add(_buildPdfTable(incomeData, [2, 2.5, 3, 2, 4], title: 'Detail Pendapatan'));
+            }
+
+            // 3. Expense Details Section
+            List<List<String>> expenseData = [
+              ['ID Pengeluaran', 'Tanggal', 'Deskripsi', 'Jumlah']
+            ];
+            for (var expense in expensesToExport) {
+              expenseData.add([
+                expense.id.toString(),
+                pdfDateFormatter.format(expense.date),
+                expense.description,
+                currencyFormatter.format(expense.amount),
+              ]);
+            }
+            if (expenseData.length > 1) { // Hanya tambahkan jika ada data selain header
+              content.add(_buildPdfTable(expenseData, [2, 2.5, 4, 2], title: 'Detail Pengeluaran'));
+            }
+
+            // 4. Combined History Section
+            List<List<String>> combinedHistoryData = [
+              ['Tipe', 'ID', 'Tanggal', 'Deskripsi / Nama Pelanggan', 'Jumlah', 'Detail Layanan']
+            ];
+            List<dynamic> combinedList = [...transactionsToExport, ...expensesToExport];
+            combinedList.sort((a, b) {
+              DateTime dateA = (a is TransactionAC) ? a.date : (a as Expense).date;
+              DateTime dateB = (b is TransactionAC) ? b.date : (b as Expense).date;
+              return dateB.compareTo(dateA); // Urutkan dari terbaru ke terlama
+            });
+
+            for (var item in combinedList) {
+              if (item is TransactionAC) {
+                String items = item.items.map((e) => '${e.serviceName} (${e.quantity}x)').join(', ');
+                combinedHistoryData.add([
+                  'Pendapatan',
+                  item.id.toString(),
+                  pdfDateFormatter.format(item.date),
+                  item.customerName,
+                  currencyFormatter.format(item.total),
+                  items,
+                ]);
+              } else if (item is Expense) {
+                combinedHistoryData.add([
+                  'Pengeluaran',
+                  item.id.toString(),
+                  pdfDateFormatter.format(item.date),
+                  item.description,
+                  currencyFormatter.format(item.amount),
+                  '', // Tidak ada detail item untuk expense
+                ]);
+              }
+            }
+            if (combinedHistoryData.length > 1) { // Hanya tambahkan jika ada data selain header
+              content.add(_buildPdfTable(combinedHistoryData, [1.5, 1.5, 2.5, 3, 2, 3.5], title: 'Riwayat Gabungan'));
+            }
+            
+            return content;
+          },
+        ),
+      );
+
+      // Simpan file PDF
+      final directory = await getExternalStorageDirectory();
+      final String filePath = '${directory!.path}/Financial_Report_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf';
+      
+      final file = File(filePath);
+      await file.writeAsBytes(await pdf.save()); // Simpan PDF ke bytes dan tulis ke file
+
+      if (mounted) {
+        // Tutup dialog loading sebelum menampilkan pesan sukses/membuka file
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context);
+        }
+        await showAppMessageDialog(
+          context,
+          title: 'Laporan Dibuat',
+          message: 'Laporan keuangan disimpan di $filePath',
+        );
+        OpenFilex.open(filePath); // Buka file PDF
       }
     } catch (e) {
       if (mounted) {
-        await showAppMessageDialog(context, title: 'Error', message: 'Failed to generate report: $e');
+        // Pastikan dialog loading ditutup jika terjadi error
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context);
+        }
+        await showAppMessageDialog(context, title: 'Error', message: 'Gagal membuat laporan: $e');
+        debugPrint('Error generating PDF: $e'); // Untuk debugging
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Watch the summary provider
     final summaryAsyncValue = ref.watch(financialSummaryProvider);
 
-    // Watch the repositories directly to get all data for lists, regardless of current filter
-    // Note: This fetches ALL transactions/expenses every time this widget rebuilds.
-    // For large datasets, consider fetching only what's needed for the displayed list
-    // or passing a filtered list from the ViewModel.
-    // For excel export, we need all data for the selected filter period anyway.
     final transactionsRepo = ref.watch(transactionRepositoryProvider);
     final expensesRepo = ref.watch(expenseRepositoryProvider);
 
@@ -180,9 +338,8 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
         break;
       case DateFilter.allTime:
       default:
-        // For allTime, we just use getTransactions()/getExpenses() without date range
-        startDate = DateTime.fromMillisecondsSinceEpoch(0); // Very old date
-        endDate = DateTime.now().add(const Duration(days: 365 * 100)); // Very far future date
+        startDate = DateTime.fromMillisecondsSinceEpoch(0); // Sangat lama
+        endDate = DateTime.now().add(const Duration(days: 365 * 100)); // Sangat jauh di masa depan
         break;
     }
 
@@ -203,11 +360,9 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Filter by
             _buildFilterSection(context, ref),
             const SizedBox(height: 16.0),
 
-            // Summary Cards (smaller height)
             summaryAsyncValue.when(
               data: (summary) {
                 return Column(
@@ -225,11 +380,10 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
             ),
             const SizedBox(height: 16.0),
 
-            // Report to Excel Button
             ElevatedButton.icon(
-              onPressed: _exportToExcel,
-              icon: const Icon(Icons.description),
-              label: const Text('Generate Excel Report'),
+              onPressed: _exportToPdf, // Ganti ke _exportToPdf
+              icon: const Icon(Icons.picture_as_pdf), // Ganti ikon
+              label: const Text('Generate PDF Report'), // Ganti label
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
@@ -239,9 +393,8 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
                 foregroundColor: Colors.white,
               ),
             ),
-            const SizedBox(height: 24.0), // Spasi setelah tombol
+            const SizedBox(height: 24.0),
 
-            // Combined History List
             const Text(
               'Combined History',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -258,16 +411,11 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
                   final List<TransactionAC> transactions = snapshot.data![0];
                   final List<Expense> expenses = snapshot.data![1];
 
-                  // Simpan data mentah ini untuk digunakan oleh _exportToExcel
-                  allTransactions = transactions;
-                  allExpenses = expenses;
-
-                  // Gabungkan dan urutkan berdasarkan tanggal terbaru
                   List<dynamic> combinedList = [...transactions, ...expenses];
                   combinedList.sort((a, b) {
                     DateTime dateA = (a is TransactionAC) ? a.date : (a as Expense).date;
                     DateTime dateB = (b is TransactionAC) ? b.date : (b as Expense).date;
-                    return dateB.compareTo(dateA); // Urutkan dari terbaru ke terlama
+                    return dateB.compareTo(dateA);
                   });
 
                   if (combinedList.isEmpty) {
@@ -275,8 +423,8 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
                   }
 
                   return ListView.builder(
-                    shrinkWrap: true, // Penting agar ListView.builder bisa di dalam SingleChildScrollView
-                    physics: const NeverScrollableScrollPhysics(), // Nonaktifkan scroll ListView ini
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: combinedList.length,
                     itemBuilder: (context, index) {
                       final item = combinedList[index];
@@ -298,7 +446,6 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
     );
   }
 
-  // Helper method untuk bagian filter
   Widget _buildFilterSection(BuildContext context, WidgetRef ref) {
     final currentFilter = ref.watch(financialSummaryProvider.notifier).currentFilter;
     return Card(
@@ -333,14 +480,13 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
     );
   }
 
-  // Helper method untuk kartu summary yang lebih kecil
   Widget _buildSummaryCard(BuildContext context, String title, double amount, Color color) {
     return Card(
       elevation: 2,
       color: color.withOpacity(0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0), // Padding vertikal lebih kecil
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -358,7 +504,6 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
     );
   }
 
-  // Helper method untuk item riwayat transaksi
   Widget _buildTransactionHistoryItem(TransactionAC transaction) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4.0),
@@ -384,7 +529,7 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
             ),
             if (transaction.items.isNotEmpty)
               Text(
-                'Items: ${transaction.items.map((item) => '${item.serviceName} (${item.quantity}x)').join(', ')}', // <--- item.serviceName
+                'Items: ${transaction.items.map((item) => '${item.serviceName} (${item.quantity}x)').join(', ')}',
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
           ],
@@ -393,7 +538,6 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
     );
   }
 
-  // Helper method untuk item riwayat pengeluaran
   Widget _buildExpenseHistoryItem(Expense expense) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4.0),
@@ -424,7 +568,6 @@ class _FinancialSummaryViewState extends ConsumerState<FinancialSummaryView> {
   }
 }
 
-// Extension untuk mengubah kecerahan warna
 extension ColorExtension on Color {
   Color darken([double amount = .1]) {
     assert(amount >= 0 && amount <= 1);
