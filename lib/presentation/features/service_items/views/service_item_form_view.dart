@@ -1,8 +1,11 @@
+// lib/presentation/features/service_items/views/service_item_form_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_pos_ac/data/models/service_item.dart';
 import 'package:app_pos_ac/presentation/features/service_items/viewmodels/service_item_viewmodel.dart';
 import 'package:app_pos_ac/presentation/common_widgets/app_dialogs.dart';
+import 'package:flutter/services.dart'; // <<<--- TAMBAHKAN IMPORT INI
 
 class ServiceItemFormView extends ConsumerStatefulWidget {
   final ServiceItem? serviceItem;
@@ -23,7 +26,8 @@ class _ServiceItemFormViewState extends ConsumerState<ServiceItemFormView> {
     super.initState();
     _nameController = TextEditingController(text: widget.serviceItem?.name ?? '');
     _priceController = TextEditingController(
-        text: widget.serviceItem?.price.toStringAsFixed(0) ?? '');
+        // Menampilkan 0 jika null atau tidak valid, agar tidak crash
+        text: widget.serviceItem?.price?.toStringAsFixed(0) ?? '0'); // Mengubah dari toStringAsFixed(0) agar konsisten
   }
 
   @override
@@ -36,7 +40,22 @@ class _ServiceItemFormViewState extends ConsumerState<ServiceItemFormView> {
   Future<void> _submitForm() async {
     if (_formKey.currentState?.validate() ?? false) {
       final name = _nameController.text.trim();
+      // Pastikan parsing double bisa menangani tanda minus
       final price = double.tryParse(_priceController.text) ?? 0.0;
+      
+      // Validasi tambahan: jika price negatif, pastikan itu benar-benar diskon
+      // (ini mungkin akan ditangani lebih baik di viewmodel atau logika bisnis)
+      if (price.isNaN) { // Untuk berjaga-jaga jika parsing gagal meskipun sudah diformat
+        if (mounted) {
+          await showAppMessageDialog(
+            context,
+            title: 'Input Tidak Valid',
+            message: 'Harga yang dimasukkan tidak valid. Harap masukkan angka.',
+          );
+        }
+        return;
+      }
+
       final serviceItemNotifier = ref.read(serviceItemProvider.notifier);
 
       try {
@@ -107,8 +126,12 @@ class _ServiceItemFormViewState extends ConsumerState<ServiceItemFormView> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _priceController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                // Mengubah keyboardType agar mendukung tanda minus
+                keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true), // <<<--- PERUBAHAN UTAMA DI SINI
+                // Tambahkan inputFormatters untuk mengizinkan digit, titik, dan minus
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')), // Mengizinkan minus di awal, digit, dan satu titik
+                ], // <<<--- PERUBAHAN UTAMA DI SINI
                 decoration: InputDecoration(
                   labelText: 'Harga',
                   prefixText: 'Rp ',
@@ -116,6 +139,7 @@ class _ServiceItemFormViewState extends ConsumerState<ServiceItemFormView> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) return 'Harga wajib diisi';
+                  // Izinkan parsing dengan tanda minus
                   if (double.tryParse(value) == null) return 'Format harga tidak valid';
                   return null;
                 },
