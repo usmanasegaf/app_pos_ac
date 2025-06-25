@@ -15,7 +15,7 @@ class HomeScreen extends StatelessWidget {
 
   // URL Google Form Absensi Anda
   final String _googleFormAbsensiUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSddx6WyUEgwQobJJ6j4k0rQTFGavUkiQRz9ACUPTYLlwXJMzQ/viewform?usp=dialog';
-
+  final String _jotFormAbsensiUrl = 'https://form.jotform.com/251747697333064'; // Ganti dengan URL JotForm Anda
   // Fungsi untuk membuka URL - Sekarang menerima BuildContext
   Future<void> _launchUrl(BuildContext context, String urlString) async {
     final Uri url = Uri.parse(urlString);
@@ -38,7 +38,8 @@ class HomeScreen extends StatelessWidget {
       [Icons.account_balance_wallet, 'Riwayat Pengeluaran', const ExpenseHistoryView()],
       [Icons.analytics, 'Ringkasan Keuangan', const FinancialSummaryView()],
       // KARTU BARU: Absensi Online
-      [Icons.access_time, 'Form Absensi', (ctx) => _launchUrl(ctx, _googleFormAbsensiUrl)],
+      [Icons.access_time, 'Form Absensi + Timemark', (ctx) => _launchUrl(ctx, _googleFormAbsensiUrl)],
+      [Icons.access_time, 'Form Absensi', (ctx) => _launchUrl(ctx, _jotFormAbsensiUrl)],
     ];
 
     return Scaffold(
